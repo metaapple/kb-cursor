@@ -496,3 +496,164 @@ npm run build
 ## 라이선스·기여
 
 개인/팀 프로젝트에 맞게 `package.json`의 `license` 필드와 저장소 정책을 설정하세요.
+
+<hr>
+아래는 요청한 내용을 **한글로 체계적으로 정리한 문서**입니다. (개념 + 구조 + 흐름 중심으로 설명)
+
+---
+
+# 📘 JSON Server와 db.json 문서 (한글 버전)
+
+## 1️⃣ JSON Server 설정 방법
+
+JSON Server는 **가짜 REST API 서버를 빠르게 만들어주는 도구**입니다.
+프론트(Vue 등) 개발 시 백엔드 없이도 API 테스트가 가능합니다.
+
+### 🔧 설치
+
+```bash
+npm install -g json-server
+```
+
+### 📄 db.json 파일 생성
+
+프로젝트 루트에 `db.json` 파일을 생성합니다.
+
+### ▶️ 서버 실행
+
+```bash
+json-server --watch db.json
+```
+
+* 기본 주소: `http://localhost:3000`
+* 자동으로 REST API 생성됨
+
+---
+
+## 2️⃣ db.json 구조
+
+### 📌 예시
+
+```json
+{
+  "posts": [
+    { "id": 1, "title": "Post 1", "author": "Author 1" },
+    { "id": 2, "title": "Post 2", "author": "Author 2" }
+  ],
+  "comments": [
+    { "id": 1, "body": "Comment 1", "postId": 1 },
+    { "id": 2, "body": "Comment 2", "postId": 1 }
+  ]
+}
+```
+
+### 💡 구조 설명
+
+* `posts`, `comments` → 각각 하나의 **리소스(Resource)**
+* `id` → 기본 키 (Primary Key)
+* `postId` → 관계 설정 (외래 키 느낌)
+
+👉 즉, 하나의 JSON 파일로 **DB처럼 사용 가능**
+
+---
+
+## 3️⃣ 자동 생성되는 API
+
+`db.json`을 기반으로 자동으로 REST API가 만들어집니다.
+
+### 📡 예시
+
+| 기능    | 요청 방식       | URL        |
+| ----- | ----------- | ---------- |
+| 전체 조회 | GET         | `/posts`   |
+| 단일 조회 | GET         | `/posts/1` |
+| 생성    | POST        | `/posts`   |
+| 수정    | PUT / PATCH | `/posts/1` |
+| 삭제    | DELETE      | `/posts/1` |
+
+---
+
+## 4️⃣ Vue 앱과 JSON Server 관계
+
+Vue 앱은 JSON Server를 **백엔드처럼 사용**합니다.
+
+### 📊 구조 흐름
+
+```
+Vue (Frontend)
+   ↓ axios / fetch
+HTTP 요청 (GET, POST 등)
+   ↓
+JSON Server (db.json)
+   ↓
+데이터 반환 (JSON)
+```
+
+---
+
+## 5️⃣ Vue에서 사용하는 방식
+
+### 📌 axios 예시
+
+```javascript
+import axios from 'axios';
+
+// 전체 데이터 조회
+const getPosts = async () => {
+  const res = await axios.get('http://localhost:3000/posts');
+  console.log(res.data);
+};
+
+// 데이터 추가
+const addPost = async () => {
+  await axios.post('http://localhost:3000/posts', {
+    title: '새 글',
+    author: '작성자'
+  });
+};
+```
+
+---
+
+## 6️⃣ 핵심 개념 정리
+
+* JSON Server = **가짜 백엔드 서버**
+* db.json = **데이터베이스 역할**
+* Vue = **프론트엔드**
+* Axios = **통신 도구**
+
+👉 이 구조로 **프론트 + 백엔드 분리 개발 가능**
+
+---
+
+## 7️⃣ 장점과 한계
+
+### ✅ 장점
+
+* 빠른 개발 (백엔드 없이 가능)
+* REST API 자동 생성
+* 테스트 및 학습에 최적
+
+### ❌ 한계
+
+* 실제 DB 아님
+* 인증/보안 없음
+* 복잡한 로직 처리 불가
+
+---
+
+# 📊 최종 정리 표
+
+| 구분           | 설명                     | 역할     |
+| ------------ | ---------------------- | ------ |
+| JSON Server  | 가짜 API 서버              | 백엔드 역할 |
+| db.json      | JSON 데이터 파일            | DB 역할  |
+| Vue App      | 사용자 UI                 | 프론트엔드  |
+| Axios        | HTTP 요청 라이브러리          | 통신     |
+| API Endpoint | `/posts`, `/comments`  | 데이터 접근 |
+| HTTP Method  | GET, POST, PUT, DELETE | CRUD   |
+
+---
+
+
+
