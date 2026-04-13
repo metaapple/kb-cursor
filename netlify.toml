@@ -1,0 +1,14 @@
+# Netlify: Vue(Vite) 정적 배포 + SPA 라우팅
+# 1) Render 등에 API를 먼저 올리고 URL을 확보한 뒤
+# 2) Netlify → Site settings → Environment variables 에 추가:
+#    VITE_API_BASE_URL = https://your-api.onrender.com  (끝에 / 붙이지 않음)
+# 3) 다시 Deploy (환경 변수는 빌드 시점에 번들에 들어감)
+
+[build]
+  command = "npm run build"
+  publish = "dist"
+
+[[redirects]]
+  from = "/*"
+  to = "/index.html"
+  status = 200

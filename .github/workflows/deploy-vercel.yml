@@ -1,0 +1,58 @@
+# Vercel 공식 Git 연동으로 자동 배포하는 것을 권장합니다 (아래 README/설명 참고).
+# 이 워크플로는 CLI·토큰으로만 배포할 때 쓰는 백업용이며, push 시 자동 실행하지 않습니다.
+# (Vercel 대시보드에서 Git을 연결한 경우 + 이 파일이 push에 반응하면 배포가 이중으로 돌 수 있음)
+#
+# 수동 실행: GitHub → Actions → Deploy — Vercel (CLI) → Run workflow
+#
+# Secrets (Settings → Secrets and variables → Actions):
+#   VERCEL_TOKEN, VERCEL_ORG_ID, VERCEL_PROJECT_ID
+#   VITE_API_BASE_URL (선택)
+#
+# https://vercel.com/guides/how-can-i-use-github-actions-with-vercel
+
+name: Deploy — Vercel (CLI)
+
+on:
+  workflow_dispatch:
+
+concurrency:
+  group: vercel-deploy-cli-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Install Vercel CLI
+        run: npm install --global vercel@latest
+
+      - name: Pull Vercel environment
+        run: vercel pull --yes --environment=production --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Build (Vercel)
+        run: vercel build --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+
+      - name: Deploy prebuilt to Vercel
+        run: vercel deploy --prebuilt --prod --token=${{ secrets.VERCEL_TOKEN }}
+        env:
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}

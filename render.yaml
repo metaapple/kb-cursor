@@ -1,0 +1,15 @@
+# Render Blueprint: json-server API (무료 플랜은 미사용 시 슬립됨)
+# Dashboard → New → Blueprint → 이 저장소 연결 후 배포
+# 배포 후 Public URL을 Netlify/Vercel의 VITE_API_BASE_URL 에 넣으세요.
+
+services:
+  - type: web
+    name: kb-cursor-api
+    runtime: node
+    plan: free
+    region: oregon
+    buildCommand: npm install
+    startCommand: npm start
+    envVars:
+      - key: NODE_VERSION
+        value: "20"

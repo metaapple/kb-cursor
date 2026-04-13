@@ -1,0 +1,50 @@
+# Netlify 프로덕션 배포 (push main 또는 수동 실행)
+#
+# GitHub 저장소 → Settings → Secrets and variables → Actions 에 등록:
+#   NETLIFY_AUTH_TOKEN   Netlify User settings → Applications → Personal access tokens
+#   NETLIFY_SITE_ID      Site settings → Site details → Site information → API ID
+#   VITE_API_BASE_URL    Render 등 API 공개 URL (예: https://xxx.onrender.com, 끝 / 없음)
+#
+# 동일 저장소를 Netlify에 연결해 둔 뒤, 이 워크플로만 쓰려면 Netlify의
+# Git 연동 빌드는 끄거나, 중복 배포를 피하세요.
+
+name: Deploy — Netlify
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: netlify-deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+        env:
+          VITE_API_BASE_URL: ${{ secrets.VITE_API_BASE_URL }}
+
+      # netlify/actions 는 태그 릴리스가 없어 main 브랜치 참조(필요 시 커밋 SHA로 고정 권장)
+      - name: Deploy to Netlify
+        uses: netlify/actions/cli@master
+        with:
+          args: deploy --dir=dist --prod
+        env:
+          NETLIFY_AUTH_TOKEN: ${{ secrets.NETLIFY_AUTH_TOKEN }}
+          NETLIFY_SITE_ID: ${{ secrets.NETLIFY_SITE_ID }}
