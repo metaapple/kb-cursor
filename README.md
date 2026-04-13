@@ -1,6 +1,20 @@
 # Vue 3 가계부 앱 (kb-cursor)
 
 원본 React/TypeScript 가계부 UI를 **Vue 3** 기반으로 옮긴 웹 애플리케이션입니다. 거래를 기록·조회하고, 요약 지표·차트로 흐름을 보여 주며, **금융 리터러시 퀴즈(게임)**로 학습 요소를 더했습니다. 백엔드 대신 **json-server**와 `db.json`으로 REST API를 흉내 내어 로컬에서 바로 동작하게 구성되어 있습니다.
+<br>
+<hr>
+
+<img width="1017" height="832" alt="스크린샷 2026-04-13 08 48 21" src="https://github.com/user-attachments/assets/92a843af-02ad-48ac-8edc-78d110903057" />
+<img width="2048" height="1256" alt="스크린샷 2026-04-13 08 45 21" src="https://github.com/user-attachments/assets/6a9f7503-b0f1-4fde-8a00-56e99b4b3c06" />
+<img width="2048" height="1256" alt="스크린샷 2026-04-13 08 45 27" src="https://github.com/user-attachments/assets/7f51b8ed-68e3-4f38-9e3b-c66b3d77cc30" />
+<img width="2048" height="1256" alt="스크린샷 2026-04-13 08 45 43" src="https://github.com/user-attachments/assets/c61ecfeb-67a8-4ef1-a280-6de2307bb866" />
+<img width="2048" height="1256" alt="스크린샷 2026-04-13 08 46 41" src="https://github.com/user-attachments/assets/f888ea74-dabb-4aa7-9584-cc11009e4805" />
+<img width="2048" height="1256" alt="스크린샷 2026-04-13 08 46 29" src="https://github.com/user-attachments/assets/df503753-b847-4d63-b5bb-1fe4f7d3b908" />
+<img width="2048" height="1256" alt="스크린샷 2026-04-13 08 46 18" src="https://github.com/user-attachments/assets/5f5895b9-874f-458c-95c9-850772ab2e4b" />
+<img width="2048" height="1256" alt="스크린샷 2026-04-13 08 46 10" src="https://github.com/user-attachments/assets/f959a85d-5fca-490c-8e0a-ab3d058a70da" />
+<img width="2048" height="1256" alt="스크린샷 2026-04-13 08 45 58" src="https://github.com/user-attachments/assets/5bfc9afa-b3fc-435d-87d1-b2ccdb7c908f" />
+<img width="2048" height="1256" alt="스크린샷 2026-04-13 08 45 52" src="https://github.com/user-attachments/assets/1bfcf6ce-1980-4f71-bf3b-ced3d47f813e" />
+
 
 ---
 
