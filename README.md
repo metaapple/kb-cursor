@@ -12,6 +12,7 @@
 - [시작하기](#시작하기)
 - [환경 변수](#환경-변수)
 - [프로젝트 구조](#프로젝트-구조)
+- [모듈·함수 레퍼런스](#모듈함수-레퍼런스)
 - [데이터 모델 (db.json)](#데이터-모델-dbjson)
 - [라우팅·인증](#라우팅인증)
 - [빌드·배포](#빌드배포)
@@ -21,11 +22,56 @@
 
 ## 기능 개요
 
+아래 그림은 **화면 흐름**, **인증**, **대시보드 구성**, **게임·데이터** 관계를 한눈에 보기 위한 것입니다. GitHub·대부분의 마크다운 뷰어에서 Mermaid로 렌더링됩니다.
+
+### 화면·라우팅 흐름
+
+게스트는 로그인·회원가입만 이용하고, 인증 후에는 대시보드와 금융 게임을 오갈 수 있습니다.
+
+```mermaid
+flowchart TB
+  subgraph guest["게스트 전용"]
+    L["/login 로그인"]
+    S["/signup 회원가입"]
+  end
+  subgraph authed["로그인 필요"]
+    D["/dashboard 대시보드"]
+    G["/game 금융 퀴즈"]
+  end
+  R["/ 리다이렉트"]
+  R --> D
+  L --> D
+  S --> D
+  D <--> G
+```
+
 ### 인증·프로필
 
 - **회원가입 / 로그인**: 이메일·비밀번호 기준. 가입 시 `users`에 저장되고, 로그인 성공 시 **공개 사용자 정보**(id, name, email, avatarUrl)만 `localStorage`에 유지합니다.
 - **세션 복원**: 새로고침 후에도 로그인 상태를 유지합니다.
 - **프로필**: 서버(`GET /users/:id`)에서 최신 이름·이메일을 다시 불러와 세션과 동기화할 수 있습니다.
+
+로그인 시 API에서 사용자를 찾고, 브라우저에는 민감 정보를 최소화한 세션만 둡니다.
+
+```mermaid
+sequenceDiagram
+  participant U as 사용자
+  participant App as Vue Pinia auth
+  participant API as json-server
+
+  Note over U,API: 로그인
+  U->>App: 이메일 비밀번호
+  App->>API: GET users email 필터
+  API-->>App: 사용자 배열
+  App->>App: 비밀번호 일치 확인
+  App->>App: localStorage currentUser 공개 필드만
+
+  Note over U,API: 프로필 새로고침
+  U->>App: 프로필 열기
+  App->>API: GET users id
+  API-->>App: 최신 name email 등
+  App->>App: 세션 갱신
+```
 
 ### 대시보드
 
@@ -37,6 +83,38 @@
   - **Google Charts 패널**: 별도 컴포넌트로 확장 가능한 시각화 영역.
 - **테마**: 라이트/다크 전환, `data-bs-theme` 및 `localStorage`에 저장.
 
+한 화면에서 지표·거래·계좌·두 종류의 차트가 **같은 Pinia 스토어·API 데이터**를 바탕으로 갱신됩니다. 테마만 `localStorage`와 직결됩니다.
+
+```mermaid
+flowchart TB
+  API["REST json-server"]
+  subgraph pinia["Pinia 스토어"]
+    TXS["transactions"]
+    ACS["accounts"]
+    AUT["auth"]
+  end
+  subgraph dash["대시보드 UI"]
+    M["지표 카드"]
+    T["거래 목록 CRUD"]
+    A["계좌 카드"]
+    C["월별 차트 Chart.js"]
+    GC["Google Charts 패널"]
+    P["프로필 모달"]
+  end
+  API --> TXS
+  API --> ACS
+  API --> AUT
+  TXS --> M
+  TXS --> T
+  TXS --> C
+  TXS --> GC
+  ACS --> A
+  AUT --> P
+  TH["테마 토글"]
+  LS["localStorage household-theme"]
+  TH <--> LS
+```
+
 ### 금융 게임 (`/game`)
 
 - **난이도 티어**(입문·중급·심화)별 객관식 문제로 가계부·소비 습관 개념을 학습합니다.
@@ -45,10 +123,54 @@
 - **맞춤 인사이트**: `financialGameInsights` 유틸이 거래 내역·게임 기록·티어 통계·XP를 묶어 개선 제안 문구를 생성합니다.
 - 게임 **결과/이력**은 API(`gameResults` 등)와 연동되는 스토어가 있습니다.
 
+퀴즈 진행 → XP는 브라우저에, 라운드 요약은 서버에 쌓이고, 거래·이력과 합쳐 인사이트 문구가 만들어집니다.
+
+```mermaid
+flowchart LR
+  subgraph play["플레이"]
+    Q["티어 선택 입문 중급 심화"]
+    R["문제 풀이"]
+    Q --> R
+  end
+  subgraph local["localStorage"]
+    XP["XP 레벨"]
+    ST["티어 통계"]
+  end
+  subgraph server["db.json"]
+    GR["gameResults"]
+    TX["transactions"]
+  end
+  FI["buildFinancialGameInsights"]
+  R --> XP
+  R --> ST
+  R --> GR
+  TX --> FI
+  GR --> FI
+  ST --> FI
+  XP --> FI
+```
+
 ### 기타
 
 - `scripts/generate-db.mjs`: 시드/DB 생성 보조 스크립트.
 - Axios **공통 클라이언트**: 개발·프로덕션별 `baseURL` 규칙이 주석과 코드에 정리되어 있습니다.
+
+기능 전반에서 **서버에 남는 데이터**와 **브라우저에만 두는 데이터**를 구분하면 이해가 쉽습니다.
+
+```mermaid
+flowchart TB
+  subgraph browser["브라우저"]
+    LS["localStorage 세션 테마 게임XP 티어통계"]
+    Vue["Vue SPA Pinia"]
+  end
+  subgraph server["로컬 API"]
+    JS["json-server"]
+    DB["db.json"]
+  end
+  Vue <-->|Axios REST| JS
+  JS <--> DB
+  Vue --> LS
+```
 
 ---
 
@@ -160,6 +282,160 @@ vueapp/
 ├── package.json
 └── README.md
 ```
+
+---
+
+## 모듈·함수 레퍼런스
+
+아래는 **외부에서 호출하거나 템플릿·다른 모듈에서 참조하는 식별자** 위주입니다. Pinia 스토어는 `use*Store()`로 얻은 객체의 **반환 프로퍼티**를 적었고, 파일 내부 전용 헬퍼(`toPublicUser`, `monthKey` 등)는 생략하거나 한 줄로만 표시합니다.
+
+### `src/main.js`
+
+| 식별자 | 설명 |
+|--------|------|
+| (부트스트랩) | `createApp(App)` → `use(createPinia())` → `use(router)` → `mount('#app')`. 전역 CSS(`style.css`), Bootstrap 번들 JS 로드. |
+
+### `src/App.vue`
+
+| 식별자 | 설명 |
+|--------|------|
+| (setup) | `useThemeStore()`, `useGameStore()`를 호출해 테마 적용·게임 스토어 사용자 전환 감시가 앱 전역에서 동작하도록 함. |
+| `<router-view />` | 라우트별 페이지 컴포넌트 마운트 지점. |
+
+### `src/api/client.js`
+
+| 식별자 | 설명 |
+|--------|------|
+| `devDefaultBase()` | 개발 모드 기본 API 호스트. `window` 없으면 `127.0.0.1:3000`, 있으면 `http://{hostname}:3000`. |
+| `api` | `axios.create({ baseURL, headers })` 인스턴스. `baseURL`은 `VITE_API_BASE_URL` → (개발) `devDefaultBase()` → (프로덕션) `/api` 순으로 결정. |
+
+### `src/router/index.js`
+
+| 식별자 | 설명 |
+|--------|------|
+| `router` (default export) | `createWebHistory`, 라우트: `/`→`/dashboard`, `/login`, `/signup`, `/dashboard`, `/game`. |
+| `router.beforeEach` | `authStore.restoreSession()` 후 `requiresAuth`·`guestOnly` 메타에 따라 리다이렉트. |
+
+### `src/composables/loadGoogleCharts.js`
+
+| 함수 | 설명 |
+|------|------|
+| `loadGoogleCharts()` | `window` 없으면 `Promise.resolve()`. 이미 로더 있으면 `charts.load`·`setOnLoadCallback`만 실행. 없으면 `gstatic` 스크립트 삽입 후 동일. **중복 로드 방지**를 위해 모듈 스코프 `loadPromise` 캐시. 실패 시 `reject`. |
+
+### `src/utils/financialGameInsights.js`
+
+| 함수 | 설명 |
+|------|------|
+| `buildFinancialGameInsights({ transactions, gameHistory, tierStats, xp, level })` | **유일한 export.** 거래 합계·카테고리·흑자/적자·티어별 정답률·최근 라운드 정답률 등을 바탕으로 **휴리스틱 문구** 생성. 반환: `{ summary: string, items: string[] }` (중복 제거 후 최대 6문장). |
+
+내부: `tierAccuracy(tierStats, t)` — 티어 `t` 정답률(%) 또는 시도 없으면 `null`.
+
+### `src/stores/auth.js` — `useAuthStore()`
+
+| 종류 | 이름 | 설명 |
+|------|------|------|
+| state | `user` | 현재 사용자(`null` 또는 `{ id, name, email, avatarUrl }`). |
+| state | `profileLoading`, `profileError` | 프로필 API 로딩·에러 메시지. |
+| computed | `isAuthenticated` | `!!user`. |
+| method | `restoreSession()` | 메모리에 `user` 없을 때만 `localStorage`의 `currentUser` 복원. |
+| method | `fetchProfile()` | `GET /users/:id` 후 세션 갱신. `{ ok, message? }`. |
+| method | `signup(name, email, password)` | 이메일 중복 조회 후 `POST /users`, 성공 시 세션 저장. `{ ok, message? }`. |
+| method | `login(email, password)` | `GET /users?email=` 후 클라이언트에서 비밀번호 일치 확인. `{ ok, message? }`. |
+| method | `logout()` | `user` 초기화 및 `localStorage` 세션 키 제거. |
+
+내부: `toPublicUser`, `persistSession` — 스토어 내부에서만 사용.
+
+### `src/stores/transactions.js` — `useTransactionStore()`
+
+| 종류 | 이름 | 설명 |
+|------|------|------|
+| state | `transactions`, `loading`, `error` | 거래 배열·로딩·에러 문자열. |
+| state | `listPage`, `listPageSize` | 목록 페이지(기본 8건/페이지). |
+| computed | `sortedTransactions` | 날짜 내림차순 정렬 복사본. |
+| computed | `listTotalPages`, `pagedSortedTransactions`, `listRangeText` | 페이지네이션 UI용. |
+| computed | `totalIncome`, `totalExpense`, `balance` | 전체 수입·지출·차이. |
+| computed | `chartData` | 월별 `{ month, income, expense }` 배열(최근 4개월). |
+| method | `goToListPage(p)` | 페이지 클램프 후 이동. |
+| method | `fetchTransactions()` | `GET /transactions?userId=`. `{ ok, message? }`. |
+| method | `addTransaction(payload)` | `POST /transactions` (`date`, `category`, `description`, `amount`, `type`). |
+| method | `updateTransaction(id, payload)` | `PUT /transactions/:id`. |
+| method | `deleteTransaction(id)` | `DELETE /transactions/:id`, 목록에서 제거 후 페이지 보정. |
+
+내부: `monthKey`, `monthLabel`, `clampListPage`, `setErrorFromResponse`.
+
+### `src/stores/accounts.js` — `useAccountStore()`
+
+| 종류 | 이름 | 설명 |
+|------|------|------|
+| state | `accounts`, `loading`, `error`, `page`, `pageSize` | 계좌 목록·페이지(기본 5건). |
+| computed | `totalPages`, `pagedAccounts`, `rangeText` | 페이지네이션. |
+| method | `fetchAccounts()` | `GET /accounts?userId=`. |
+| method | `goToPage(p)` | 페이지 이동(범위 클램프). |
+| method | `clear()` | 목록·페이지·에러 초기화(로그아웃 등). |
+
+### `src/stores/theme.js` — `useThemeStore()`
+
+| 종류 | 이름 | 설명 |
+|------|------|------|
+| state | `dark` | 다크 모드 여부(`localStorage` `household-theme`과 동기화). |
+| method | `toggle()` | 다크 토글. |
+| (내부) | `apply(dark)` | `data-bs-theme`, `app-dark` 클래스 반영. `watch`에서 즉시·이후 변경 시 호출. |
+
+### `src/stores/game.js` — `useGameStore()`
+
+| 종류 | 이름 | 설명 |
+|------|------|------|
+| state | `xp`, `tierStats` | XP·티어별 `{ correct, attempted, rounds }`(키 `1`~`3`). `localStorage` 키는 사용자 id별. |
+| computed | `level` | `floor(xp/100)+1`. |
+| computed | `xpInCurrentLevel` | 현재 레벨 구간 XP(`xp % 100`). |
+| computed | `totalsFromStats` | 전 티어 합산 `correct`, `attempted`, `rounds`, `accuracy`(%) 또는 `null`. |
+| method | `addXp(amount)` | XP 가산 후 `persist()`. |
+| method | `recordRound({ tier, correct, total })` | 해당 티어 통계 누적 후 `persistStats()`. |
+| method | `loadForUser(userId)` | 사용자 변경 시 XP·통계 로드 또는 초기화. (`watch`에서 자동 호출) |
+| (내부) | `mergeTierStats`, `persist`, `persistStats` | 저장/파싱 보조. |
+
+### `src/stores/gameResults.js` — `useGameResultsStore()`
+
+| 종류 | 이름 | 설명 |
+|------|------|------|
+| state | `history`, `loading`, `error` | 서버에서 가져온 게임 라운드 기록(최신순). |
+| method | `fetchMyResults()` | `GET /gameResults?userId=`, `createdAt` 기준 정렬. |
+| method | `saveResult(payload)` | `POST /gameResults` (`tier`, `correct`, `total`, `xpTotal`, `level`, `createdAt` 자동). 본문 값은 클램프·기본값 처리. |
+
+### `src/views/` (페이지)
+
+| 파일 | 주요 동작 |
+|------|-----------|
+| `LoginView.vue` | `authStore.login`, 유효성·에러 표시, 성공 시 라우터 이동. |
+| `SignupView.vue` | `authStore.signup`, 중복 이메일 메시지 처리. |
+| `DashboardView.vue` | `loadDashboard`(프로필·거래·계좌 병렬 로드), 로그아웃 시 관련 스토어 초기화, 거래 CRUD 모달 연동, 테마 토글, `MonthlyChart`·`GoogleChartsPanel`에 데이터 전달. |
+| `GameView.vue` | 티어별 `QUESTION_TIERS` 퀴즈 진행, `gameStore.addXp`·`recordRound`, `gameResultsStore.saveResult`·`fetchMyResults`, `buildFinancialGameInsights`로 `improvementPlan` 표시. |
+
+### `src/components/` (UI 조각)
+
+컴포넌트는 **export 함수**가 없고, 아래는 **props / emit** 및 역할입니다.
+
+| 파일 | props | emit / 역할 |
+|------|-------|-------------|
+| `MetricCard.vue` | `label`, `value`, `change?`, `changeType?` | 지표 한 칸 표시. |
+| `MonthlyChart.vue` | `data` (`{ month, income, expense }[]`) | Chart.js 막대 그래프. |
+| `GoogleChartsPanel.vue` | `transactions`, `dark?` | `loadGoogleCharts()` 후 월별 집계·Google 시각화(내부 `monthKey`/`monthLabel` 등). |
+| `TransactionList.vue` | `transactions` | `edit`(행 객체), `delete`(id). 카테고리별 배지·이모지 매핑. |
+| `AddTransactionModal.vue` | `modelValue`, `editing?` | `update:modelValue`, 신규 시 `submit`(payload), 수정 시 `update`({ id, … }). |
+| `ProfileModal.vue` | `modelValue` | `update:modelValue`. 아바타·요약·`auth`/`transactions`/`game` 스토어 표시. |
+| `AccountListCard.vue` | (없음) | `useAccountStore()` 직접 사용, 계좌 테이블·페이지 버튼. |
+
+### `scripts/generate-db.mjs`
+
+| 동작 | 설명 |
+|------|------|
+| (스크립트 최상위) | 하드코딩된 거래·계좌·게임 결과·데모 유저로 `db` 객체 구성 후 프로젝트 루트 `db.json`에 `writeFileSync`. **export 없음** — `node scripts/generate-db.mjs` 형태로 실행. |
+
+### `vite.config.js`
+
+| 식별자 | 설명 |
+|--------|------|
+| `default export` | `@` → `./src` 별칭, `server`/`preview`의 `/api` → `127.0.0.1:3000` 프록시(경로에서 `/api` 제거). |
 
 ---
 
