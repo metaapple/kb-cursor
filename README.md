@@ -502,7 +502,7 @@ npm run build
 
 ---
 
-# 📘 JSON Server와 db.json 문서 (한글 버전)
+# 📘 JSON Server와 db.json 
 
 ## 1️⃣ JSON Server 설정 방법
 
